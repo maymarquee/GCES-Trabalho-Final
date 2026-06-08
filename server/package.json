@@ -15,6 +15,7 @@
     },
     "devDependencies": {
         "jest": "^29.7.0",
+        "nodemon": "^3.1.14",
         "socket.io-client": "^4.8.1"
     },
     "license": "MIT"
