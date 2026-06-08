@@ -6,9 +6,10 @@ var Messages = {
 };
 
 
-function Game(id, gameCollection) {
+function Game(id, gameCollection, db) {
   this._id = id;
   this._gameCollection = gameCollection;
+  this._db = db || null;
   this._players = [];
 }
 
@@ -61,15 +62,23 @@ Game.prototype._addHandlers = function () {
 
 Game.prototype.endGame = function (playerOut) {
   if (!this._players.length) return;
-  var opponent = +!playerOut;
-  opponent = this._players[opponent];
+  var winner = +!playerOut;
+  var player1Id = this._players[0].id;
+  var player2Id = this._players[1].id;
+  var opponentSocket = this._players[winner];
   this._players = [];
-  opponent.disconnect();
+  if (this._db) {
+    this._db.saveMatch(this._id, player1Id, player2Id, winner + 1).catch(function (err) {
+      console.error('[db] save match failed:', err.message);
+    });
+  }
+  opponentSocket.disconnect();
   this._gameCollection.removeGame(this._id);
 };
 
-function GameCollection() {
+function GameCollection(db) {
   this._games = {};
+  this._db = db || null;
 }
 
 GameCollection.prototype.getGame = function (game) {
@@ -80,7 +89,7 @@ GameCollection.prototype.createGame = function (id) {
   if (this._games[id]) {
     return false;
   }
-  var game = new Game(id, this);
+  var game = new Game(id, this, this._db);
   this._games[id] = game;
   return true;
 };

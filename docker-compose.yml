@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${HOST_PORT:-55555}:55555"
+    volumes:
+      - ./server:/app/server
+      - ./game:/app/game
+      - ./nodemon.json:/app/nodemon.json
+      - node_modules:/app/server/node_modules
+    environment:
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=${PGUSER:-mkjs}
+      - PGPASSWORD=${PGPASSWORD:-mkjs}
+      - PGDATABASE=${PGDATABASE:-mkjs}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "${DB_HOST_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_USER=${PGUSER:-mkjs}
+      - POSTGRES_PASSWORD=${PGPASSWORD:-mkjs}
+      - POSTGRES_DB=${PGDATABASE:-mkjs}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-mkjs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  node_modules:

@@ -2,10 +2,21 @@ var express = require('express'),
     app = express(),
     server = require('http').createServer(app),
     io = require('socket.io')(server),
+    db = require('./db'),
     GameCollection = require('./games.js').GameCollection,
-    games = new GameCollection();
+    games = new GameCollection(db);
 
 app.use(express.static(__dirname + '/../game'));
+
+app.get('/api/matches', async function (req, res) {
+  try {
+    var matches = await db.getMatches();
+    res.json(matches);
+  } catch (err) {
+    console.error('[api] getMatches failed:', err.message);
+    res.status(500).json({ error: 'Failed to retrieve matches' });
+  }
+});
 
 server.listen(55555);
 

@@ -86,6 +86,56 @@ Ctrl+C          # o flag --rm garante limpeza automática do contêiner
 docker build -t mkjs-dev .   # reconstrói a camada de npm ci
 ```
 
+### Docker Compose DEV com Postgres (recomendado para desenvolvimento completo)
+
+Sobe a aplicação **e** um banco de dados PostgreSQL com um único comando. Persiste o histórico de partidas automaticamente.
+
+Pré-requisito: apenas **Docker** (com suporte a Compose v2) — nenhuma outra ferramenta no host.
+
+**1. Configuração inicial (uma vez)**
+
+```bash
+cp .env.example .env
+# Edite .env para ajustar portas ou credenciais do banco se necessário
+```
+
+**2. Subir o ambiente completo**
+
+```bash
+docker compose up
+```
+
+Aguarde até ver nos logs:
+```
+app  | [nodemon] starting `node server/server.js`
+```
+
+Abra `http://localhost:55555` no navegador. O jogo está disponível e o banco está pronto para registrar partidas.
+
+**Hot-reload (mesmo comportamento da fase anterior):**
+- Editar e salvar qualquer arquivo em `server/` → nodemon reinicia o servidor automaticamente (≤ 3 s)
+- Editar e salvar qualquer arquivo em `game/` → recarregar a página aplica a mudança imediatamente
+
+**Consultar histórico de partidas:**
+```bash
+# Via rota HTTP
+curl http://localhost:55555/api/matches
+
+# Via psql (acesso direto ao banco)
+docker compose exec db psql -U mkjs -d mkjs -c "SELECT * FROM matches;"
+```
+
+**Parar o ambiente:**
+```bash
+docker compose down          # para os containers, preserva os dados (volume postgres_data)
+docker compose down -v       # para e apaga os volumes (reset completo do banco)
+```
+
+**Após alterar dependências em `server/package.json`:**
+```bash
+docker compose up --build    # reconstrói a imagem app com as novas dependências
+```
+
 ---
 
 # Configuração Técnica
