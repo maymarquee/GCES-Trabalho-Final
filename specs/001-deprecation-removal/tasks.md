@@ -93,7 +93,7 @@ the contract in `contracts/matchmaking-protocol.md`.
       v4 client bundle now served from `/socket.io/socket.io.js` — adjust the
       call only if the v4 client API requires it (research.md decision 2)
       (`game/src/mk.js`, depends on T004)
-- [ ] T006 [US1] Manually run the full two-tab network match scenario from
+- [X] T006 [US1] Manually run the full two-tab network match scenario from
       `specs/001-deprecation-removal/quickstart.md` (step 4): both tabs pair,
       exchange `event`/`life-update`/`position-update` in real time, and the
       match ends correctly when one tab disconnects — confirms SC-002 and
