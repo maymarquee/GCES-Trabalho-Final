@@ -35,11 +35,11 @@ top-level directories are introduced; the only new path is `server/test/`.
 
 **Purpose**: Declare the new dependency baseline the rest of the migration builds on
 
-- [ ] T001 Update `server/package.json`: bump `express` from `3.x.x` to `^4.x`
+- [X] T001 Update `server/package.json`: bump `express` from `3.x.x` to `^4.x`
       and `socket.io` from `0.9.x` to `^4.x`, add `jest` as a `devDependency`
       with a `"test": "jest"` script, and declare `"engines": {"node": ">=18"}`
       per research.md decisions 1, 2, 3, and 5 (`server/package.json`)
-- [ ] T002 [P] Run a clean `npm install` in `server/` against the updated
+- [X] T002 [P] Run a clean `npm install` in `server/` against the updated
       manifest, regenerating `server/package-lock.json`, and confirm the
       install completes with zero errors or fatal warnings traceable to the
       direct dependencies — this is the first checkpoint for SC-001
@@ -57,12 +57,12 @@ this phase is done
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Rewrite the Express initialization in `server/server.js`: replace
+- [X] T003 Rewrite the Express initialization in `server/server.js`: replace
       the removed `app.configure(function () { app.use(express.static(...)); })`
       block with the direct `app.use(express.static(__dirname + '/../game'))`
       call supported by Express 4, keeping `server.listen(55555)` unchanged
       (`server/server.js`)
-- [ ] T004 Rewrite the connection handling in `server/server.js`: replace the
+- [X] T004 Rewrite the connection handling in `server/server.js`: replace the
       removed `io.sockets.on('connection', function (socket) {...})` pattern
       with the Socket.io 4 `io.on('connection', function (socket) {...})`
       pattern, preserving the existing `Responses`/`Requests` constants and
@@ -87,7 +87,7 @@ the contract in `contracts/matchmaking-protocol.md`.
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Update the `Network` controller's connection call in
+- [X] T005 [US1] Update the `Network` controller's connection call in
       `game/src/mk.js` (`this._socket = io.connect();`) so it correctly
       establishes a handshake against the Socket.io 4 server and the matching
       v4 client bundle now served from `/socket.io/socket.io.js` — adjust the
@@ -115,11 +115,11 @@ errors referencing removed APIs — quickstart.md steps 1 and 3.
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Start the server with `node server.js` on a current Node.js
+- [X] T007 [US2] Start the server with `node server.js` on a current Node.js
       LTS runtime and confirm it listens on port 55555 with **no** errors such
       as `app.configure is not a function` or `io.sockets.on is not a
       function` — confirms SC-003 (`server/server.js`, depends on T004; verification task, no further edits expected)
-- [ ] T008 [P] [US2] Review `ComoRodar.md` and update it if the install/start
+- [X] T008 [P] [US2] Review `ComoRodar.md` and update it if the install/start
       commands or the minimum supported Node.js version changed as a result of
       this migration, keeping the documented setup steps accurate per the
       constitution's Documentation principle (`ComoRodar.md`)
@@ -145,7 +145,7 @@ transition in `contracts/matchmaking-protocol.md` is asserted and passes.
 > is the project's first red→green pair, setting the precedent the
 > constitution requires CI to enforce later (Phase 4 of the grading rubric).
 
-- [ ] T009 [P] [US3] Write `server/test/matchmaking.test.js` (Jest): boot the
+- [X] T009 [P] [US3] Write `server/test/matchmaking.test.js` (Jest): boot the
       real Express + Socket.io server on an ephemeral port, connect with real
       `socket.io-client` instances, and assert on every row of
       `contracts/matchmaking-protocol.md` — `SUCCESS`/`GAME_EXISTS`/
@@ -157,7 +157,7 @@ transition in `contracts/matchmaking-protocol.md` is asserted and passes.
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Fix the pre-existing bug in
+- [X] T010 [US3] Fix the pre-existing bug in
       `GameCollection.prototype.createGame` in `server/games.js`: the
       duplicate-name check reads `if (this._games[game])` where `game` is an
       undeclared/hoisted-undefined variable (always falsy), so `GAME_EXISTS`
@@ -165,7 +165,7 @@ transition in `contracts/matchmaking-protocol.md` is asserted and passes.
       it correctly matches the documented contract in
       `contracts/matchmaking-protocol.md` and spec FR-004
       (`server/games.js`, depends on T009)
-- [ ] T011 [US3] Run `npm test` and confirm the full `matchmaking.test.js`
+- [X] T011 [US3] Run `npm test` and confirm the full `matchmaking.test.js`
       suite — including the now-fixed `GAME_EXISTS` assertion — passes
       (green), completing the red→green pair from T009/T010
       (`server/test/matchmaking.test.js`, depends on T009, T010)
@@ -179,11 +179,11 @@ matchmaking contract is now protected by an automated, repeatable suite
 
 **Purpose**: Final end-to-end confirmation that the whole migration meets the spec's success criteria
 
-- [ ] T012 [P] Run through `specs/001-deprecation-removal/quickstart.md`
+- [X] T012 [P] Run through `specs/001-deprecation-removal/quickstart.md`
       end-to-end (clean install → `npm test` → `node server.js` → two-tab
       match) in one pass and confirm SC-001 through SC-004 all hold
       (`specs/001-deprecation-removal/quickstart.md`)
-- [ ] T013 Sweep `server/server.js` and `server/games.js` for any remaining
+- [X] T013 Sweep `server/server.js` and `server/games.js` for any remaining
       references to the removed `app.configure`/`io.sockets.on` patterns or
       stale comments from the Express 3 / Socket.io 0.9 implementation, per
       spec FR-002/FR-003 (`server/server.js`, `server/games.js`)
