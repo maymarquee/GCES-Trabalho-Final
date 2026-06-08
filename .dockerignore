@@ -1,0 +1,30 @@
+# Dependencies — installed inside the container via npm ci
+node_modules/
+server/node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# Spec-kit / planning artifacts
+specs/
+.specify/
+
+# Environment files (never bake secrets into the image)
+.env
+.env.*
+
+# Logs & coverage
+*.log
+npm-debug.log*
+coverage/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker files themselves (no need to copy into image)
+Dockerfile
+.dockerignore
