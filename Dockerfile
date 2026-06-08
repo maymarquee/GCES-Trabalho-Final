@@ -15,9 +15,10 @@ RUN cd server && npm ci
 # This COPY is a fallback so the image is self-contained if run without mounts.
 COPY game/ ./game/
 COPY server/ ./server/
+COPY nodemon.json ./
 
 EXPOSE 55555
 
-# --legacy-watch enables polling-based file watching, required in Docker Desktop
-# (macOS/Windows) where inotify events from bind-mounts are not forwarded.
-CMD ["./server/node_modules/.bin/nodemon", "--legacy-watch", "server/server.js"]
+# nodemon.json configures watch paths and legacyWatch (polling) so that
+# bind-mount changes from Docker Desktop (macOS/Windows) are detected.
+CMD ["./server/node_modules/.bin/nodemon", "server/server.js"]
