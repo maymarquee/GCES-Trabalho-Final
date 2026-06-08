@@ -49,5 +49,5 @@ The 11 phases in `README.md` build on each other roughly in this order: deprecia
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/001-deprecation-removal/plan.md`
+`specs/002-dev-containerization/plan.md`
 <!-- SPECKIT END -->
