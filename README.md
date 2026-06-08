@@ -12,6 +12,7 @@ O trabalho está dividido em 10 etapas, cada uma valendo **1,0 ponto**. O foco �
 
 | Fase | Descrição Técnica | Nota por etapa |
 |---|---|---|
+| 0. **Retirada de Depreciação** | Atualização e compatibilização das dependências do projeto para versões suportadas, correção de APIs depreciadas, eliminação de vulnerabilidades conhecidas e implementação/adequação de testes unitários para garantir a estabilidade e o comportamento esperado após as atualizações. | 0-10% |
 | 1. **Containerização (DEV)** | Elaboração de `Dockerfile` para ambiente de desenvolvimento com suporte a hot-reload (mudanças no código refletidas imediatamente no container). | 0-10% |
 | 2. **Docker Compose (DEV)** | Configuração de um `docker-compose.yml` que integre a aplicação e um banco de dados **Postgres**. Você deve implementar uma camada simples de persistência no código (ex: salvar histórico de lutas ou nomes de jogadores). | 10% - 20% |
 | 3. **CI - Build & Lint** | Automação das etapas de Build e Lint (Front e Back) via GitHub Actions. O pipeline deve falhar se o lint encontrar erros. | 20% - 30% |

@@ -11,6 +11,9 @@ Para rodar o jogo localmente, basta abrir o arquivo `game/index.html` em qualque
 
 ### Execução em Rede (Servidor Node.js)
 
+Pré-requisito: Node.js **18 ou superior** (o servidor usa Express 4.x e
+Socket.io 4.x, que exigem essa versão mínima — ver `server/package.json`).
+
 Para o jogo em rede, você precisa iniciar o servidor:
 
 1.  Navegue até a pasta do servidor:
