@@ -1,0 +1,31 @@
+stages:
+  - build
+  - lint
+
+default:
+  image: node:18-alpine
+
+build:
+  stage: build
+  script:
+    - cd server && npm ci
+  artifacts:
+    paths:
+      - server/node_modules/
+    expire_in: 1 hour
+
+lint:back:
+  stage: lint
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - cd server && npm run lint:back
+
+lint:front:
+  stage: lint
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - cd server && npm run lint:front
