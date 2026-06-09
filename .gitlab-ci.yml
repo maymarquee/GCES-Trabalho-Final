@@ -1,6 +1,7 @@
 stages:
   - build
   - lint
+  - test
 
 default:
   image: node:18-alpine
@@ -29,3 +30,11 @@ lint:front:
       artifacts: true
   script:
     - cd server && npm run lint:front
+
+test:unit:
+  stage: test
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - cd server && npm test
