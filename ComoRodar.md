@@ -136,6 +136,41 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### CI — Segurança: SAST & SCA (GitLab CI)
+
+O pipeline executa análise de segurança automaticamente em todo push, no estágio `security` (após `test`). Dois jobs são executados em paralelo:
+
+- **`semgrep-sast`** — Análise Estática de Segurança (SAST) via semgrep, detecta padrões de vulnerabilidade no código-fonte JavaScript.
+- **`sca:npm-audit`** — Verificação de Componentes (SCA) via `npm audit`, detecta vulnerabilidades conhecidas nas dependências.
+
+**Executar SCA localmente:**
+
+```bash
+cd server
+
+# Verificar vulnerabilidades (mesmo critério do CI: apenas high/critical bloqueiam)
+npm audit --audit-level=high
+
+# Relatório completo
+npm audit
+```
+
+Saída esperada (dependências limpas):
+```
+found 0 vulnerabilities
+```
+
+**Visualizar resultados no GitLab:**
+
+1. Acesse `CI/CD → Pipelines` no repositório
+2. Clique no pipeline mais recente → estágio `security`
+3. `sca:npm-audit` — log com resultado do `npm audit`
+4. `semgrep-sast` — artefato `gl-sast-report.json` disponível para download
+
+O job `sca:npm-audit` falha o pipeline se houver vulnerabilidade de severidade `high` ou `critical`. O job `semgrep-sast` é informativo (`allow_failure: true`) — achados SAST são reportados mas não bloqueiam o pipeline.
+
+---
+
 ### CI — Testes de Fuzzing (GitLab CI)
 
 O pipeline executa os testes de fuzzing automaticamente em todo push, no estágio `test` (em paralelo com `test:unit`). Os fuzz tests usam **fast-check** (property-based testing) para gerar centenas de entradas arbitrárias e verificar propriedades de `GameCollection` e `Game`.
