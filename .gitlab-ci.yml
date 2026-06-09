@@ -1,7 +1,11 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 stages:
   - build
   - lint
   - test
+  - security
 
 default:
   image: node:18-alpine
@@ -46,3 +50,22 @@ test:fuzz:
       artifacts: true
   script:
     - cd server && npm run test:fuzz
+
+semgrep-sast:
+  stage: security
+  variables:
+    SAST_EXCLUDED_PATHS: "spec, test, tests, tmp, node_modules"
+
+sca:npm-audit:
+  stage: security
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - cd server && npm audit --audit-level=high --json > npm-audit-report.json || (cat npm-audit-report.json && exit 1)
+  artifacts:
+    when: always
+    paths:
+      - server/npm-audit-report.json
+    expire_in: 1 week
+  allow_failure: false
