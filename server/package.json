@@ -8,6 +8,7 @@
     },
     "scripts": {
         "test": "jest",
+        "test:fuzz": "jest test/server.fuzz.test.js",
         "lint:back": "eslint . --ext .js",
         "lint:front": "eslint ../game/src --ext .js",
         "lint": "npm run lint:back && npm run lint:front"
@@ -19,6 +20,7 @@
     },
     "devDependencies": {
         "eslint": "^8.57.0",
+        "fast-check": "^3.23.2",
         "jest": "^29.7.0",
         "nodemon": "^3.1.14",
         "socket.io-client": "^4.8.1"
