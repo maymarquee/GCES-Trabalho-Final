@@ -27,4 +27,6 @@ Thumbs.db
 
 # Docker files themselves (no need to copy into image)
 Dockerfile
+Dockerfile.prod
+docker-compose*.yml
 .dockerignore
