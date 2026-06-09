@@ -136,6 +136,35 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### CI — Qualidade de Código (SonarCloud)
+
+O pipeline executa análise de qualidade no SonarCloud automaticamente em todo push, no estágio `quality` (após `test` e `security`). O job `sonarcloud` aguarda o resultado do Quality Gate e falha o pipeline se as métricas não atendem o padrão.
+
+**Pré-requisito (configuração única — via interface):**
+
+1. Acesse [sonarcloud.io](https://sonarcloud.io) → **Log in with GitLab**
+2. Clique em **+** → **Analyze new project** → selecione o repositório
+3. Na tela de configuração, escolha **With GitLab CI**
+4. Anote o **Project Key** e **Organization Key** exibidos e edite o arquivo `sonar-project.properties` na raiz do repositório com esses valores
+5. Em sonarcloud.io → **My Account** → **Security** → gere um token chamado `gitlab-ci`
+6. No GitLab: **Settings → CI/CD → Variables** → adicione `SONAR_TOKEN` (mascarado) com o token gerado
+
+**Verificar resultados no SonarCloud:**
+
+1. Após o pipeline executar, acesse [sonarcloud.io](https://sonarcloud.io) → seu projeto
+2. A aba **Overview** exibe: Quality Gate status, Coverage %, Bugs, Code Smells
+3. No GitLab: `CI/CD → Pipelines → [pipeline] → quality → sonarcloud` — o log exibe o link direto para o dashboard
+
+**Executar cobertura de testes localmente:**
+
+```bash
+cd server && npm run test:coverage
+```
+
+O relatório de cobertura é gerado em `server/coverage/lcov.info` (LCOV) e `server/coverage/lcov-report/index.html` (HTML navegável).
+
+---
+
 ### CI — Segurança: SAST & SCA (GitLab CI)
 
 O pipeline executa análise de segurança automaticamente em todo push, no estágio `security` (após `test`). Dois jobs são executados em paralelo:
