@@ -136,6 +136,33 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### CI — Build & Lint (GitLab CI)
+
+O pipeline de CI executa automaticamente em todo push. Para verificar localmente antes de fazer push:
+
+**Pré-requisito**: Node.js 18+ instalado. Instale as dependências uma vez:
+```bash
+cd server && npm install
+```
+
+**Executar lint completo (back-end + front-end):**
+```bash
+cd server && npm run lint
+```
+
+**Executar lint apenas do back-end (`server/`):**
+```bash
+cd server && npm run lint:back
+```
+
+**Executar lint apenas do front-end (`game/src/`):**
+```bash
+cd server && npm run lint:front
+```
+
+O processo termina com código de saída `0` se não houver erros. Avisos (`warning`) não causam falha.
+Para visualizar o pipeline no GitLab: `CI/CD → Pipelines` no repositório.
+
 ---
 
 # Configuração Técnica
