@@ -1,0 +1,19 @@
+{
+  "env": {
+    "browser": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 5,
+    "sourceType": "script"
+  },
+  "globals": {
+    "io": "readonly",
+    "cv": "readonly",
+    "Movement": "readonly"
+  },
+  "rules": {
+    "no-undef": "warn",
+    "no-unused-vars": "off",
+    "no-console": "off"
+  }
+}
