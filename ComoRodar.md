@@ -136,6 +136,32 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### CI — Testes de Fuzzing (GitLab CI)
+
+O pipeline executa os testes de fuzzing automaticamente em todo push, no estágio `test` (em paralelo com `test:unit`). Os fuzz tests usam **fast-check** (property-based testing) para gerar centenas de entradas arbitrárias e verificar propriedades de `GameCollection` e `Game`.
+
+**Pré-requisito**: Node.js 18+ e dependências instaladas (`cd server && npm install`).
+
+**Executar apenas os fuzz tests:**
+```bash
+cd server && npm run test:fuzz
+```
+
+**Executar todos os testes (unit + fuzz):**
+```bash
+cd server && npm test
+```
+
+Quando um fuzz test falha, fast-check imprime o menor input que causou a falha:
+```
+Property failed after X tests
+Counterexample: [null]
+```
+
+Para visualizar o job `test:fuzz` no GitLab: `CI/CD → Pipelines → test:fuzz`.
+
+---
+
 ### CI — Testes Unitários (GitLab CI)
 
 O pipeline executa os testes unitários automaticamente em todo push, no estágio `test`, após build e lint. Para rodar localmente:
