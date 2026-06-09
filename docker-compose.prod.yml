@@ -1,0 +1,48 @@
+# Production stack: Nginx (static files + proxy) + Node.js (API + Socket.io) + Postgres.
+# No bind-mount volumes, no hot-reload. Only port 80 is exposed on the host.
+# Usage: docker compose -f docker-compose.prod.yml up --build
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "${PROD_PORT:-80}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      - PGHOST=db
+      - PGPORT=5432
+      - PGUSER=${PGUSER:-mkjs}
+      - PGPASSWORD=${PGPASSWORD:-mkjs}
+      - PGDATABASE=${PGDATABASE:-mkjs}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${PGUSER:-mkjs}
+      - POSTGRES_PASSWORD=${PGPASSWORD:-mkjs}
+      - POSTGRES_DB=${PGDATABASE:-mkjs}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-mkjs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
