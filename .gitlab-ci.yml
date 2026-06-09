@@ -38,3 +38,11 @@ test:unit:
       artifacts: true
   script:
     - cd server && npm test
+
+test:fuzz:
+  stage: test
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - cd server && npm run test:fuzz
