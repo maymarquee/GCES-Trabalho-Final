@@ -136,6 +136,26 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### CI — Testes Unitários (GitLab CI)
+
+O pipeline executa os testes unitários automaticamente em todo push, no estágio `test`, após build e lint. Para rodar localmente:
+
+**Pré-requisito**: Node.js 18+ e dependências instaladas (`cd server && npm install`).
+
+**Executar todos os testes:**
+```bash
+cd server && npm test
+```
+
+**Executar apenas os testes unitários de `games.js`:**
+```bash
+cd server && npx jest test/games.unit.test.js
+```
+
+O processo termina com código `0` se todos os testes passarem. Para ver o job `test:unit` no GitLab: `CI/CD → Pipelines → test:unit`.
+
+---
+
 ### CI — Build & Lint (GitLab CI)
 
 O pipeline de CI executa automaticamente em todo push. Para verificar localmente antes de fazer push:
