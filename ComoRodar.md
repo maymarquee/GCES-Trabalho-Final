@@ -136,6 +136,70 @@ docker compose down -v       # para e apaga os volumes (reset completo do banco)
 docker compose up --build    # reconstrói a imagem app com as novas dependências
 ```
 
+### Ambiente de Produção via Docker Compose (Nginx + Node.js + Postgres)
+
+Stack otimizada para produção: **Nginx** serve os arquivos estáticos do jogo e faz proxy do Socket.io e da API REST para o backend Node.js. A imagem do backend usa multi-stage build baseada em Alpine e roda como usuário não-root. Apenas a porta 80 do Nginx é exposta — o backend e o banco ficam na rede interna Docker.
+
+Pré-requisito: apenas **Docker** (com suporte a Compose v2) instalado.
+
+**1. Configuração inicial (uma vez)**
+
+```bash
+cp .env.example .env
+# Edite .env se precisar mudar PROD_PORT (padrão: 80)
+```
+
+**2. Build e subida do stack de produção**
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+Aguarde até ver nos logs:
+```
+nginx  | ... start worker processes
+```
+
+Abra `http://localhost` (ou `http://localhost:${PROD_PORT}` se alterou a porta) no navegador.
+
+**3. Jogar pela interface**
+
+O jogo abre automaticamente em modo de rede. Uma caixa de diálogo perguntará:
+- **"Are you going to be host?"** — responda `yes` no primeiro navegador e `no` no segundo
+- **"Enter game name:"** — insira o mesmo nome nos dois navegadores (ex.: `sala1`)
+
+Após ambos os jogadores entrarem, o jogo começa. Controles:
+- **Jogador 1 (esquerda):** `A`/`D` = mover, `W` = pular, `E` = soco alto, `Q` = soco baixo, `R` = chute alto, `C` = chute baixo
+- **Jogador 2 (direita):** `←`/`→` = mover, `↑` = pular, teclas numéricas do pad para ataques
+
+Para testar **localmente com dois jogadores na mesma máquina**, abra dois navegadores (ou duas abas anônimas) em `http://localhost`.
+
+**4. Consultar histórico de partidas**
+
+```bash
+curl http://localhost/api/matches
+```
+
+**5. Parar o ambiente**
+
+```bash
+docker compose -f docker-compose.prod.yml down          # preserva dados
+docker compose -f docker-compose.prod.yml down -v       # apaga volumes (reset completo)
+```
+
+**Diferenças em relação ao ambiente de dev:**
+
+| | Dev (`docker-compose.yml`) | Prod (`docker-compose.prod.yml`) |
+|---|---|---|
+| Imagem base | `node:18-slim` | `node:18-alpine` (multi-stage) |
+| Hot-reload | Sim (nodemon + bind mounts) | Não |
+| Porta exposta | 55555 (Node.js direto) | 80 (Nginx) |
+| DevDependencies | Incluídas | Excluídas (`--omit=dev`) |
+| Usuário no container | root | `node` (não-root) |
+| Frontend | Servido pelo Express | Servido pelo Nginx (estático) |
+
+---
+
 ### CI — Qualidade de Código (SonarCloud)
 
 O pipeline executa análise de qualidade no SonarCloud automaticamente em todo push, no estágio `quality` (após `test` e `security`). O job `sonarcloud` aguarda o resultado do Quality Gate e falha o pipeline se as métricas não atendem o padrão.
