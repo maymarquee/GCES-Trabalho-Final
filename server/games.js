@@ -81,7 +81,7 @@ Game.prototype.endGame = function (playerOut) {
 };
 
 function GameCollection(db) {
-  this._games = {};
+  this._games = Object.create(null);
   this._db = db || null;
 }
 
@@ -90,6 +90,9 @@ GameCollection.prototype.getGame = function (game) {
 };
 
 GameCollection.prototype.createGame = function (id) {
+  if (typeof id !== 'string' || id.length === 0) {
+    return false;
+  }
   if (this._games[id]) {
     return false;
   }
