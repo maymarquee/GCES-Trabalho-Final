@@ -17,6 +17,10 @@ Game.prototype.getId = function () {
   return this._id;
 };
 
+Game.prototype.getPlayerCount = function () {
+  return this._players.length;
+};
+
 Game.prototype.addPlayer = function (p) {
   if (this._players.length > 1) {
     return false;
