@@ -8,10 +8,16 @@
     },
     "scripts": {
         "test": "jest",
+        "test:coverage": "jest --coverage",
         "test:fuzz": "jest test/server.fuzz.test.js",
         "lint:back": "eslint . --ext .js",
         "lint:front": "eslint ../game/src --ext .js",
         "lint": "npm run lint:back && npm run lint:front"
+    },
+    "jest": {
+        "coverageReporters": ["lcov", "text-summary"],
+        "coverageDirectory": "coverage",
+        "collectCoverageFrom": ["*.js"]
     },
     "dependencies": {
         "express": "^4.21.2",
