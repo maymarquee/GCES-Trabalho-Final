@@ -6,6 +6,7 @@ stages:
   - lint
   - test
   - security
+  - quality
 
 default:
   image: node:18-alpine
@@ -41,7 +42,13 @@ test:unit:
     - job: build
       artifacts: true
   script:
-    - cd server && npm test
+    - cd server && npm run test:coverage
+  coverage: '/Lines\s*:\s*(\d+\.?\d*)%/'
+  artifacts:
+    when: always
+    paths:
+      - server/coverage/
+    expire_in: 1 hour
 
 test:fuzz:
   stage: test
@@ -55,6 +62,22 @@ semgrep-sast:
   stage: security
   variables:
     SAST_EXCLUDED_PATHS: "spec, test, tests, tmp, node_modules"
+
+sonarcloud:
+  stage: quality
+  image: sonarsource/sonar-scanner-cli:latest
+  needs:
+    - job: test:unit
+      artifacts: true
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.qualitygate.wait=true
 
 sca:npm-audit:
   stage: security
