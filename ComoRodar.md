@@ -328,6 +328,103 @@ kind delete cluster --name mkjs
 
 ---
 
+### HTTPS (cert-manager)
+
+Estende o cluster Kubernetes acima com TLS local: o `cert-manager` emite, via um `ClusterIssuer` autoassinado (`selfsigned-issuer`), um certificado para `mkjs.local`, e o Ingress passa a servir `https://mkjs.local` redirecionando automaticamente `http://mkjs.local` (porta 80) para HTTPS (porta 443).
+
+**1. Instalar o cert-manager**
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
+kubectl wait --namespace cert-manager \
+  --for=condition=available deployment --all --timeout=180s
+```
+
+Se o cluster foi provisionado via Terraform (`terraform apply`), este passo já é feito automaticamente — `terraform/main.tf` instala o `cert-manager` entre o `ingress-nginx` e a aplicação dos manifestos.
+
+**2. (Re)aplicar os manifestos**
+
+```bash
+kubectl apply -k k8s/
+```
+
+`k8s/cert-issuer.yaml` (ClusterIssuer `selfsigned-issuer`) e `k8s/certificate.yaml` (Certificate `mkjs-tls`) são aplicados junto com o restante da stack.
+
+**3. Verificar a emissão do certificado**
+
+```bash
+kubectl get clusterissuer
+# selfsigned-issuer   READY=True
+
+kubectl get certificate -n mkjs
+# mkjs-tls            READY=True   SECRET=mkjs-tls
+
+kubectl get secret mkjs-tls -n mkjs
+# TYPE=kubernetes.io/tls
+```
+
+**4. Acessar via HTTPS**
+
+Abra `https://mkjs.local/` no navegador. Como o certificado é autoassinado (sem CA pública), o navegador exibe um aviso de segurança — clique em **Avançado → Continuar para mkjs.local**. Isso é esperado neste ambiente local/educacional.
+
+**5. Verificar o redirecionamento HTTP → HTTPS**
+
+```bash
+curl -k -I http://mkjs.local/
+# HTTP/1.1 308 Permanent Redirect
+# Location: https://mkjs.local/
+
+curl -k -I https://mkjs.local/
+# HTTP/2 200
+```
+
+**6. Verificar superfície de rede mínima**
+
+```bash
+kubectl get svc -n mkjs
+# app, nginx, postgres -> todos ClusterIP (nenhum exposto fora do cluster)
+
+kubectl get svc -n ingress-nginx
+# apenas o controller ingress-nginx expõe portas (mapeadas para 80/443 do host via kind)
+```
+
+**(Opcional) Confiar no certificado para evitar o aviso do navegador**
+
+```bash
+kubectl get secret mkjs-tls -n mkjs -o jsonpath='{.data.tls\.crt}' | base64 -d > mkjs-local.crt
+
+# Linux
+sudo cp mkjs-local.crt /usr/local/share/ca-certificates/mkjs-local.crt
+sudo update-ca-certificates
+
+# Windows (PowerShell como Administrador)
+Import-Certificate -FilePath .\mkjs-local.crt -CertStoreLocation Cert:\LocalMachine\Root
+```
+
+---
+
+### CD — Publicação de Imagens (GitLab Container Registry)
+
+A cada push na branch `main` que passe pelos estágios `build`, `lint`, `test`, `security`, `quality` e `infra`, o estágio `release` do pipeline builda e publica as imagens de produção (Fase 8) no Container Registry do projeto:
+
+- `mkjs-app` (a partir de `Dockerfile.prod`)
+- `mkjs-nginx` (a partir de `nginx/Dockerfile`)
+
+Cada imagem recebe duas tags: `<sha-curto-do-commit>` e `latest`. O job `release:images` usa as variáveis `CI_REGISTRY*` predefinidas pelo GitLab — nenhuma credencial adicional precisa ser configurada.
+
+Para visualizar as imagens publicadas: no projeto GitLab, acesse **Deploy → Container Registry**.
+
+Para baixar uma imagem publicada:
+
+```bash
+docker login registry.gitlab.com
+docker pull registry.gitlab.com/<namespace>/<projeto>/mkjs-app:latest
+```
+
+> O deploy no cluster `kind` local continua via `kind load docker-image` (seção "Kubernetes (K8s)" acima) — a publicação no registry é o artefato versionado de "Deploy Contínuo" desta fase; não há um cluster remoto/VPS para o qual redeployar automaticamente.
+
+---
+
 ### CI — Qualidade de Código (SonarCloud)
 
 O pipeline executa análise de qualidade no SonarCloud automaticamente em todo push, no estágio `quality` (após `test` e `security`). O job `sonarcloud` aguarda o resultado do Quality Gate e falha o pipeline se as métricas não atendem o padrão.

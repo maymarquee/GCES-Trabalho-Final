@@ -13,4 +13,6 @@ resources:
   - app-service.yaml
   - nginx-deployment.yaml
   - nginx-service.yaml
+  - cert-issuer.yaml
+  - certificate.yaml
   - ingress.yaml
