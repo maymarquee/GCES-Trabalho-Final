@@ -1,0 +1,35 @@
+# replicas: 2 — stateless static-file/reverse-proxy tier, safe to scale horizontally
+# (unlike the app Deployment, see app-deployment.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: mkjs
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mkjs-nginx
+  template:
+    metadata:
+      labels:
+        app: mkjs-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: mkjs-nginx:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 15

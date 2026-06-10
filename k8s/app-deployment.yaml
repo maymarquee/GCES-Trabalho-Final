@@ -1,0 +1,41 @@
+# replicas: 1 — GameCollection (server/games.js) keeps match state in the process'
+# memory and Socket.io has no shared adapter configured, so a second replica would
+# not see games created on the first. See specs/009-k8s-infra/research.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: mkjs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mkjs-app
+  template:
+    metadata:
+      labels:
+        app: mkjs-app
+    spec:
+      containers:
+        - name: app
+          image: mkjs-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 55555
+          envFrom:
+            - configMapRef:
+                name: mkjs-config
+            - secretRef:
+                name: mkjs-secrets
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 55555
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 55555
+            initialDelaySeconds: 10
+            periodSeconds: 15

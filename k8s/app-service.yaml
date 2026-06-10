@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: mkjs
+spec:
+  selector:
+    app: mkjs-app
+  ports:
+    - port: 55555
+      targetPort: 55555
