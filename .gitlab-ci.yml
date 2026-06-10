@@ -7,6 +7,7 @@ stages:
   - test
   - security
   - quality
+  - infra
 
 default:
   image: node:18-alpine
@@ -92,3 +93,18 @@ sca:npm-audit:
       - server/npm-audit-report.json
     expire_in: 1 week
   allow_failure: false
+
+k8s:validate:
+  stage: infra
+  image: alpine/k8s:1.30.2
+  script:
+    - kubectl kustomize k8s/
+
+terraform:validate:
+  stage: infra
+  image: hashicorp/terraform:1.9
+  script:
+    - cd terraform
+    - terraform fmt -check
+    - terraform init -backend=false
+    - terraform validate
