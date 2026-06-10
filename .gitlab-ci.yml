@@ -102,7 +102,9 @@ k8s:validate:
 
 terraform:validate:
   stage: infra
-  image: hashicorp/terraform:1.9
+  image:
+    name: hashicorp/terraform:1.9
+    entrypoint: [""]
   script:
     - cd terraform
     - terraform fmt -check
