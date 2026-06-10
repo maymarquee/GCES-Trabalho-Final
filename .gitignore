@@ -18,3 +18,11 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
