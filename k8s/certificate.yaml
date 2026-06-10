@@ -1,0 +1,15 @@
+# Requests a TLS certificate for mkjs.local from selfsigned-issuer. cert-manager
+# materializes the result as the mkjs-tls Secret (kubernetes.io/tls), consumed by
+# k8s/ingress.yaml's spec.tls.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mkjs-tls
+  namespace: mkjs
+spec:
+  secretName: mkjs-tls
+  dnsNames:
+    - mkjs.local
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
