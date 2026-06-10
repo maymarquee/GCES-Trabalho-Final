@@ -200,6 +200,134 @@ docker compose -f docker-compose.prod.yml down -v       # apaga volumes (reset c
 
 ---
 
+### Kubernetes (K8s)
+
+Manifestos em `k8s/` (aplicados via Kustomize) sobem a mesma stack — Nginx, app Node.js e Postgres com persistência — em um cluster Kubernetes local. Útil para validar a aplicação fora do Docker Compose, em um ambiente mais próximo de produção.
+
+Pré-requisitos: **Docker**, **kubectl**, **kind** (cluster Kubernetes local via containers Docker).
+
+**1. Criar o cluster local**
+
+Crie `kind-config.yaml`:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+```
+
+```bash
+kind create cluster --name mkjs --config kind-config.yaml
+```
+
+**2. Instalar o ingress-nginx**
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller --timeout=180s
+```
+
+**3. Build das imagens e carga no cluster**
+
+`kind` não tem acesso a um registry — as imagens construídas localmente precisam ser carregadas explicitamente no cluster:
+
+```bash
+docker build -f Dockerfile.prod -t mkjs-app:latest .
+docker build -f nginx/Dockerfile -t mkjs-nginx:latest .
+kind load docker-image mkjs-app:latest --name mkjs
+kind load docker-image mkjs-nginx:latest --name mkjs
+```
+
+**4. Aplicar os manifestos**
+
+```bash
+kubectl apply -k k8s/
+```
+
+**5. Acompanhar os pods**
+
+```bash
+kubectl get pods -n mkjs --watch
+# Ctrl+C quando app, nginx (x2) e postgres-0 estiverem Running / 1/1
+```
+
+**6. Acessar o jogo**
+
+Adicione ao arquivo de hosts (`/etc/hosts` ou `C:\Windows\System32\drivers\etc\hosts`):
+
+```
+127.0.0.1 mkjs.local
+```
+
+Abra `http://mkjs.local/` no navegador. Sem editar o arquivo de hosts, use port-forward:
+
+```bash
+kubectl port-forward svc/nginx 8080:80 -n mkjs
+# Abra http://localhost:8080
+```
+
+**7. Verificar persistência do Postgres**
+
+```bash
+kubectl delete pod postgres-0 -n mkjs
+kubectl get pvc -n mkjs
+# postgres-data continua "Bound" e é remontado pelo novo pod postgres-0
+```
+
+**8. Limpar o ambiente**
+
+```bash
+kubectl delete -k k8s/      # remove os recursos da aplicação (mantém o PVC se StorageClass usar Retain)
+kind delete cluster --name mkjs   # remove o cluster inteiro
+```
+
+#### Opção: provisionar via Terraform (opcional)
+
+`terraform/` automatiza os passos 1, 2 e 4 acima (criação do cluster `kind`, instalação do `ingress-nginx` e `kubectl apply -k k8s/`):
+
+```bash
+cd terraform
+terraform init
+terraform apply
+```
+
+O build e a carga das imagens (passo 3) continuam manuais — o Terraform não builda imagens Docker da aplicação:
+
+```bash
+docker build -f Dockerfile.prod -t mkjs-app:latest ..
+docker build -f nginx/Dockerfile -t mkjs-nginx:latest ..
+kind load docker-image mkjs-app:latest --name mkjs
+kind load docker-image mkjs-nginx:latest --name mkjs
+
+# Reaplica os manifestos agora que as imagens existem
+kubectl apply -k ../k8s --context "$(terraform output -raw cluster_context)"
+```
+
+Para destruir tudo:
+
+```bash
+terraform destroy
+# fallback se algo travar:
+kind delete cluster --name mkjs
+```
+
+---
+
 ### CI — Qualidade de Código (SonarCloud)
 
 O pipeline executa análise de qualidade no SonarCloud automaticamente em todo push, no estágio `quality` (após `test` e `security`). O job `sonarcloud` aguarda o resultado do Quality Gate e falha o pipeline se as métricas não atendem o padrão.
