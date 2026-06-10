@@ -1,0 +1,12 @@
+# Non-sensitive Postgres connection settings, shared by the app Deployment and the
+# Postgres StatefulSet. Mirrors the defaults from docker-compose.yml/docker-compose.prod.yml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mkjs-config
+  namespace: mkjs
+data:
+  PGHOST: postgres
+  PGPORT: "5432"
+  PGDATABASE: mkjs
+  PGUSER: mkjs

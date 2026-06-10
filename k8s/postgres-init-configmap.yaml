@@ -1,0 +1,17 @@
+# Mirrors server/db/init.sql. Mounted at /docker-entrypoint-initdb.d so the official
+# postgres image runs it on the first boot of an empty data volume.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: mkjs
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS matches (
+      id         SERIAL       PRIMARY KEY,
+      game_name  VARCHAR(100) NOT NULL,
+      player1_id VARCHAR(100) NOT NULL,
+      player2_id VARCHAR(100) NOT NULL,
+      winner     SMALLINT     CHECK (winner IN (1, 2)),
+      created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    );
