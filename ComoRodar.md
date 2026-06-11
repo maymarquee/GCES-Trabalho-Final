@@ -4,6 +4,7 @@ Este é um jogo de luta simples criado com HTML5 canvas e JavaScript. Ele possui
 * `Básico` - com um jogador ativo e um inativo.
 * `Multijogador` - com dois jogadores ativos em um computador.
 * `Rede` - com dois jogadores ativos, jogando pela rede.
+* `Webcam` - jogador 1 controlado por gestos via webcam, jogador 2 pelo teclado (ver seção "Modo Webcam" abaixo).
 
 ### Execução Local (Modo Básico/Multijogador)
 
@@ -30,6 +31,15 @@ Para o jogo em rede, você precisa iniciar o servidor:
     ```
 
 O servidor será iniciado na porta `55555`. Abra o navegador em `http://localhost:55555`. Ambos os jogadores devem inserir o mesmo nome de jogo para se conectarem.
+
+### Modo Webcam (reconhecimento de gestos)
+
+Acesse a página com o parâmetro `?mode=webcam` — por exemplo, `http://localhost:55555/?mode=webcam` (ou abrindo `game/index.html?mode=webcam` direto no navegador, se o navegador permitir câmera em `file://`). Sem o parâmetro, a página permanece no modo Rede e a coluna "Webcam" fica oculta.
+
+- O navegador pedirá permissão para usar a câmera; o vídeo processado aparece na coluna "Webcam", ao lado da arena.
+- O jogador 1 (Sub-Zero) é controlado por gestos — as instruções de calibração e movimentos aparecem na própria página. O jogador 2 (Kano) usa o teclado.
+- Importante: fique **fora** do enquadramento nos primeiros segundos — o algoritmo captura o fundo como referência. Quando o canvas da webcam ficar preto, pode entrar em cena.
+- O navegador só libera a webcam em **contexto seguro**: `localhost` ou HTTPS. No cluster Kubernetes, use `https://mkjs.local/?mode=webcam` — via `http://` o modo não funciona.
 
 ### Ambiente de Desenvolvimento via Docker (recomendado)
 
