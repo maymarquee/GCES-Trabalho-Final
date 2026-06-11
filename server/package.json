@@ -15,15 +15,29 @@
         "lint": "npm run lint:back && npm run lint:front"
     },
     "jest": {
-        "coverageReporters": ["lcov", "text-summary"],
-        "coverageDirectory": "coverage",
-        "collectCoverageFrom": ["*.js"],
+        "rootDir": "..",
+        "coverageProvider": "v8",
+        "coverageReporters": [
+            ["lcov", { "projectRoot": ".." }],
+            "text-summary"
+        ],
+        "coverageDirectory": "server/coverage",
+        "collectCoverageFrom": [
+            "server/*.js",
+            "game/src/*.js"
+        ],
         "coverageThreshold": {
             "global": {
                 "statements": 60,
                 "branches": 70,
                 "functions": 60,
                 "lines": 60
+            },
+            "../game/src/": {
+                "statements": 0,
+                "branches": 0,
+                "functions": 0,
+                "lines": 0
             }
         }
     },
@@ -36,6 +50,7 @@
         "eslint": "^8.57.0",
         "fast-check": "^3.23.2",
         "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
         "nodemon": "^3.1.14",
         "socket.io-client": "^4.8.1"
     },

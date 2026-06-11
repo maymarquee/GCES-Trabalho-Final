@@ -302,6 +302,9 @@
 
   mk.controllers.WebcamInput = function (options) {
     mk.controllers.Basic.call(this, options);
+    if (options) {
+      this._webcam = options.webcam || {};
+    }
   };
 
   mk.controllers.WebcamInput.prototype = new mk.controllers.Basic();
@@ -319,6 +322,7 @@
     var self = this,
       f = this.fighters[0];
     Movement.init({
+      container: (this._webcam || {}).container,
       movementChanged: function (m) {
         var move = self._getMoveByMovement(m);
         self._moveFighter(f, move);
