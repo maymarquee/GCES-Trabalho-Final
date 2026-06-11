@@ -48,7 +48,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   Filters.getPixels = function(img) {
     var c = this.getCanvas(img.width, img.height),
       ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
     return ctx.getImageData(0,0,c.width,c.height);
   };
 
@@ -144,10 +144,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       backgroundInitialized = false,
       lastPosition,
       lastMovement,
-      framesWithoutMotion = 0,
-      getUserMedia =
-        navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia,
-      URL = w.URL || w.webkitURL || w.mozURL;
+      framesWithoutMotion = 0;
 
   Movement.init = function (options) {
     var self = this;
@@ -158,25 +155,34 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     vid.style.visibility = 'hidden';
     vid.width = Movement.constants.WIDTH;
     vid.height = Movement.constants.HEIGHT;
-    this._initCanvases();
-    getUserMedia.call(navigator, { video: true }, function (stream) {
+    vid.muted = true;
+    vid.setAttribute('playsinline', '');
+    this._initCanvases(options.container);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Webcam access is unavailable. Open the page over HTTPS or localhost in a modern browser.');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: true }).then(function (stream) {
       if (!initialized) {
         initialized = true;
-        vid.src = URL.createObjectURL(stream);
+        vid.srcObject = stream;
         vid.play();
         self._start();
       }
-      initialized = true;
-    }, function () {
+    }).catch(function () {
       alert('Access forbidden');
     });
   };
 
-  Movement._initCanvases = function () {
+  Movement._initCanvases = function (container) {
     can = document.createElement('canvas');
-    document.body.appendChild(can);
     can.id = 'movementjs-main-canvas';
-    can.style.position = 'absolute';
+    if (container) {
+      container.appendChild(can);
+    } else {
+      document.body.appendChild(can);
+      can.style.position = 'absolute';
+    }
     can.style.visibility = 'visible';
 
     background = document.createElement('canvas');
@@ -219,6 +225,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   };
 
   Movement._handleFrame = function () {
+    if (vid.readyState < 2) {
+      return;
+    }
     if (!backgroundInitialized) {
       this._initializeBackground();
       backgroundInitialized = true;
