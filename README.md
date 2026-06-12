@@ -1,34 +1,152 @@
-# Trabalho Individual - Gerência de Configuração e Evolução de Software (2026-1)
+# Trabalho Individual GCES (2026-1)
 
-Os conhecimentos de Gerência de Configuração e Evolução de Software (GCES) são fundamentais no ciclo de vida de um produto de software moderno. Este trabalho tem como objetivo exercitar os conceitos de automação, isolamento de ambiente, testes, segurança (DevSecOps) e deploy contínuo.
+| Aluna | Matrícula |
+| ---- | ------ |
+| Mayara Marques Silva| 231035731 |
 
-A aplicação base é o **mk.js**, um jogo de luta implementado com Backend em Node.js/Express e Frontend em HTML5 Canvas/JavaScript. O projeto original é considerado *deprecated* e possui dependências antigas; parte do desafio é modernizar o ambiente para que ele execute com versões estáveis atuais.
+Este repositório contém o trabalho individual da disciplina **Gerência de Configuração e Evolução de Software** (UnB, 2026-1). A aplicação base é o **mk.js**, um jogo de luta em HTML5 Canvas/JavaScript com backend Node.js/Express + Socket.io, originalmente *deprecated*. O trabalho consistiu em modernizar, containerizar, testar, proteger (DevSecOps) e implantar continuamente a aplicação, em 11 fases incrementais (0 a 10) - todas implementadas.
 
-## Requisitos do Projeto
+> Este README traz o passo a passo essencial. O guia completo - com todos os modos de jogo, K8s, HTTPS, Terraform e detalhes de cada pipeline - está em **[ComoRodar.md](ComoRodar.md)**.
 
-O trabalho está dividido em 10 etapas, cada uma valendo **1,0 ponto**. O foco é a implementação técnica aliada à correta documentação e histórico de commits.
+> **Sobre o CI/CD:** o enunciado menciona GitHub Actions, porém o repositório da disciplina é hospedado no **GitLab** (`gitlab.com/unb-esw/gces/...`). Por isso o pipeline foi implementado em **GitLab CI** ([`.gitlab-ci.yml`](.gitlab-ci.yml)), com estágios equivalentes aos workflows/jobs do GitHub Actions: `build → lint → test → security → quality → infra → release`.
 
-### Critérios de Avaliação (10 Fases)
+---
 
-| Fase | Descrição Técnica | Nota por etapa |
+## Ambiente de Desenvolvimento (passo a passo)
+
+Pré-requisito: apenas **Docker** (com Compose v2) instalado e em execução - não é necessário Node.js no host.
+
+**1. Clonar o repositório e configurar variáveis de ambiente (uma vez):**
+
+```bash
+git clone https://gitlab.com/unb-esw/gces/gces2026-1/trabalho-final-gces-mayara-silva.git
+cd trabalho-final-gces-mayara-silva
+cp .env.example .env
+# Edite .env se quiser alterar portas ou credenciais do banco (padrões funcionam)
+```
+
+**2. Subir a aplicação + Postgres com um único comando:**
+
+```bash
+docker compose up
+```
+
+Aguarde até ver nos logs:
+
+```
+app  | [nodemon] starting `node server/server.js`
+```
+
+**3. Acessar o jogo:**
+
+Abra **http://localhost:55555** no navegador. Para jogar em rede, abra duas abas/navegadores e insira o **mesmo nome de jogo** nos dois.
+
+**4. Hot-reload (já habilitado):**
+
+- Editar qualquer arquivo em `server/` → o nodemon reinicia o servidor automaticamente (≤ 3 s).
+- Editar qualquer arquivo em `game/` → basta recarregar a página no navegador.
+
+**5. Verificar a persistência (histórico de partidas no Postgres):**
+
+```bash
+curl http://localhost:55555/api/matches
+# ou direto no banco:
+docker compose exec db psql -U mkjs -d mkjs -c "SELECT * FROM matches;"
+```
+
+**6. Parar o ambiente:**
+
+```bash
+docker compose down       # preserva os dados do banco (volume postgres_data)
+docker compose down -v    # apaga também os volumes (reset completo)
+```
+
+**Rodar lint e testes localmente** (requer Node.js 18+):
+
+```bash
+cd server && npm install
+npm run lint            # ESLint no back-end e front-end
+npm test                # testes unitários + fuzzing (Jest + fast-check)
+npm run test:coverage   # testes com relatório de cobertura (LCOV + HTML)
+```
+
+---
+
+## Ambiente de Produção (passo a passo)
+
+### Opção A - Docker Compose (mais simples)
+
+Stack otimizada: **Nginx** (servindo os arquivos estáticos e fazendo proxy do Socket.io/API) + **Node.js** (imagem multi-stage baseada em Alpine, usuário não-root) + **Postgres**. Apenas a porta 80 do Nginx é exposta ao host; backend e banco ficam na rede interna de containers.
+
+```bash
+cp .env.example .env       # se ainda não fez
+docker compose -f docker-compose.prod.yml up --build
+```
+
+Aguarde `nginx | ... start worker processes` e abra **http://localhost** no navegador. Histórico de partidas: `curl http://localhost/api/matches`. Para parar: `docker compose -f docker-compose.prod.yml down`.
+
+### Opção B - Kubernetes com HTTPS (cluster local `kind` + cert-manager)
+
+Sobe a mesma stack em um cluster Kubernetes local, com **HTTPS via cert-manager** e redirecionamento automático de HTTP (80) para HTTPS (443). Pré-requisitos: Docker, `kubectl`, `kind` e (opcionalmente) Terraform.
+
+Resumo do fluxo: o detalhamento de cada passo está nas seções [Kubernetes (K8s)](ComoRodar.md#kubernetes-k8s) e [HTTPS (cert-manager)](ComoRodar.md#https-cert-manager) do ComoRodar.md:
+
+```bash
+# 1. Provisionar cluster kind + ingress-nginx + cert-manager + manifestos (automatizado)
+cd terraform && terraform init && terraform apply && cd ..
+
+# 2. Buildar as imagens de produção e carregá-las no cluster
+docker build -f Dockerfile.prod -t mkjs-app:latest .
+docker build -f nginx/Dockerfile -t mkjs-nginx:latest .
+kind load docker-image mkjs-app:latest --name mkjs
+kind load docker-image mkjs-nginx:latest --name mkjs
+
+# 3. (Re)aplicar os manifestos agora que as imagens existem no cluster
+kubectl apply -k k8s/
+
+# 4. Mapear o host local (como administrador, em /etc/hosts ou
+#    C:\Windows\System32\drivers\etc\hosts):
+#    127.0.0.1 mkjs.local
+```
+
+Acesse **https://mkjs.local/** (o certificado é autoassinado - aceite o aviso do navegador). O redirecionamento 80 → 443 pode ser verificado com:
+
+```bash
+curl -k -I http://mkjs.local/    # HTTP/1.1 308 Permanent Redirect → Location: https://mkjs.local/
+```
+
+Os Services `app`, `nginx` e `postgres` são todos `ClusterIP` - nenhuma porta além de 80/443 (ingress) é exposta para fora da rede de containers.
+
+### Imagens publicadas (CD)
+
+A cada push na branch `main` com pipeline verde, o estágio `release` publica as imagens de produção no **GitLab Container Registry** do projeto (`mkjs-app` e `mkjs-nginx`, tags `latest` e `<sha do commit>`). Para visualizá-las: **Deploy → Container Registry** no GitLab. Para baixar:
+
+```bash
+docker login registry.gitlab.com
+docker pull registry.gitlab.com/unb-esw/gces/gces2026-1/trabalho-final-gces-mayara-silva/mkjs-app:latest
+```
+
+---
+
+## Fases implementadas
+
+| Fase | O que foi feito | Principais artefatos |
 |---|---|---|
-| 0. **Retirada de Depreciação** | Atualização e compatibilização das dependências do projeto para versões suportadas, correção de APIs depreciadas, eliminação de vulnerabilidades conhecidas e implementação/adequação de testes unitários para garantir a estabilidade e o comportamento esperado após as atualizações. | 0-10% |
-| 1. **Containerização (DEV)** | Elaboração de `Dockerfile` para ambiente de desenvolvimento com suporte a hot-reload (mudanças no código refletidas imediatamente no container). | 0-10% |
-| 2. **Docker Compose (DEV)** | Configuração de um `docker-compose.yml` que integre a aplicação e um banco de dados **Postgres**. Você deve implementar uma camada simples de persistência no código (ex: salvar histórico de lutas ou nomes de jogadores). | 10% - 20% |
-| 3. **CI - Build & Lint** | Automação das etapas de Build e Lint (Front e Back) via GitHub Actions. O pipeline deve falhar se o lint encontrar erros. | 20% - 30% |
-| 4. **CI - Testes Unitários** | Implementação de testes unitários funcionais. **Obrigatório:** Commits sequenciais demonstrando o teste quebrando no CI e, em seguida, passando após correção. | 30% - 40% |
-| 5. **CI - Testes de Fuzzing** | Implementação de testes de Fuzzing para validar a resiliência das entradas do servidor (Back-end) contra dados inesperados. | 40% - 50% |
-| 6. **Segurança - SAST & SCA** | Integração de ferramentas de análise estática de segurança (SAST) e verificação de vulnerabilidades em dependências (SCA - ex: Snyk ou npm audit). | 50% - 60% |
-| 7. **Qualidade de Código** | Integração completa com o **SonarCloud** no pipeline de CI, garantindo métricas de qualidade e cobertura mínima. | 60% - 70% |
-| 8. **Containerização (PROD)** | Elaboração de `Dockerfiles` otimizados para produção (multi-stage build, baseados em Alpine) e configuração do **Nginx** como servidor de arquivos estáticos. | 70% - 80% | 
-| 9. **Infraestrutura (K8s & Terraform)** | Criação de manifestos de **Kubernetes (K8s)** para orquestração da aplicação. Opcionalmente, utilize **Terraform** para provisionar a infraestrutura necessária. | 80% - 90% |
-| 10. **CD & Segurança de Rede** | Deploy Contínuo com publicação de imagens e configuração de **HTTPS via Cert Manager**. O Nginx deve redirecionar porta 80 para 443 e não expor outras portas para fora da rede de containers. | 90% - 100% |
+| 0. Retirada de Depreciação | Express 3 → 4.21, Socket.io 0.9 → 4.8, APIs depreciadas corrigidas (server e cliente), testes unitários garantindo o comportamento | [`server/package.json`](server/package.json), [`server/test/`](server/test) |
+| 1. Containerização (DEV) | Imagem de desenvolvimento com hot-reload via nodemon + bind mounts | [`Dockerfile`](Dockerfile), [`nodemon.json`](nodemon.json) |
+| 2. Docker Compose (DEV) | App + Postgres 16; persistência do histórico de partidas (`/api/matches`) | [`docker-compose.yml`](docker-compose.yml), [`server/db.js`](server/db.js), [`server/db/init.sql`](server/db/init.sql) |
+| 3. CI - Build & Lint | Estágios `build` e `lint` (back e front, ESLint); pipeline falha em erro de lint | [`.gitlab-ci.yml`](.gitlab-ci.yml) |
+| 4. CI - Testes Unitários | Jest no estágio `test`; commits sequenciais red → green no CI (ex.: `50b9431` red → `f7eeb7f` green; branch `ci-red-demo`) | [`server/test/games.unit.test.js`](server/test/games.unit.test.js), [`server/test/matchmaking.test.js`](server/test/matchmaking.test.js) |
+| 5. CI - Fuzzing | Property-based testing com fast-check sobre as entradas do servidor (job `test:fuzz`) | [`server/test/server.fuzz.test.js`](server/test/server.fuzz.test.js) |
+| 6. Segurança - SAST & SCA | SAST via semgrep (template GitLab) + SCA via `npm audit` (falha em high/critical) | [`.gitlab-ci.yml`](.gitlab-ci.yml) (jobs `semgrep-sast`, `sca:npm-audit`) |
+| 7. Qualidade de Código | SonarCloud no estágio `quality` com Quality Gate bloqueante e cobertura via LCOV | [`sonar-project.properties`](sonar-project.properties) |
+| 8. Containerização (PROD) | Multi-stage build Alpine, usuário não-root, Nginx servindo estáticos e proxy do Socket.io/API | [`Dockerfile.prod`](Dockerfile.prod), [`nginx/`](nginx), [`docker-compose.prod.yml`](docker-compose.prod.yml) |
+| 9. Infra - K8s & Terraform | Manifestos K8s (Kustomize): deployments, services, StatefulSet do Postgres com PVC, ingress; Terraform provisiona cluster `kind` + ingress-nginx; validação no CI | [`k8s/`](k8s), [`terraform/`](terraform) |
+| 10. CD & Segurança de Rede | Publicação de imagens no Container Registry a cada push na `main`; HTTPS via cert-manager (ClusterIssuer + Certificate); redirect 308 de 80 → 443; demais serviços apenas `ClusterIP` | [`k8s/cert-issuer.yaml`](k8s/cert-issuer.yaml), [`k8s/certificate.yaml`](k8s/certificate.yaml), [`k8s/ingress.yaml`](k8s/ingress.yaml), job `release:images` |
 
-## Orientações Gerais
+O histórico de commits é atômico e incremental, com branches por fase (`001-deprecation-removal` … `010-cd-https-cert-manager`) e specs/planos de cada fase em [`specs/`](specs).
 
-*   **Repositório:** O trabalho deve ser desenvolvido em um repositório pessoal no GitHub.
-*   **Commits:** Devem ser atômicos e espaçados no tempo. Commits realizados todos juntos na data de entrega serão penalizados.
-*   **Modernização:** É responsabilidade do aluno atualizar o `package.json` e as dependências do servidor para garantir compatibilidade com as versões mais recentes do Node.js.
-*   **Documentação:** O `README.md` final deve conter o passo a passo de como subir o ambiente de desenvolvimento e como visualizar o ambiente de produção.
+---
 
-Boa sorte!
+## Licença
+Este software é distribuído sob os termos da licença MIT.
