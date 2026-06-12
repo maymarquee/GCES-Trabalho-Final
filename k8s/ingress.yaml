@@ -1,5 +1,7 @@
-# HTTP-only entry point for this phase. Phase 10 attaches TLS (cert-manager) to this
-# same Ingress. Long proxy timeouts keep Socket.io websocket connections alive.
+# HTTPS entry point: TLS is served from the mkjs-tls Secret issued by cert-manager
+# (see cert-issuer.yaml/certificate.yaml). ssl-redirect/force-ssl-redirect send
+# http://mkjs.local (port 80) to https://mkjs.local (port 443) with a 308. Long
+# proxy timeouts keep Socket.io websocket connections alive.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,8 +10,14 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - mkjs.local
+      secretName: mkjs-tls
   rules:
     - host: mkjs.local
       http:

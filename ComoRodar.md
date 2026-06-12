@@ -1,9 +1,10 @@
 # Como Rodar o Projeto
 
-Este é um jogo de luta simples criado com HTML5 canvas e JavaScript. Ele possui três modos de jogo:
+Este é um jogo de luta simples criado com HTML5 canvas e JavaScript. Ele possui quatro modos de jogo:
 * `Básico` - com um jogador ativo e um inativo.
 * `Multijogador` - com dois jogadores ativos em um computador.
 * `Rede` - com dois jogadores ativos, jogando pela rede.
+* `Webcam` - jogador 1 controlado por gestos via webcam, jogador 2 pelo teclado (ver seção "Modo Webcam" abaixo).
 
 ### Execução Local (Modo Básico/Multijogador)
 
@@ -12,7 +13,7 @@ Para rodar o jogo localmente, basta abrir o arquivo `game/index.html` em qualque
 ### Execução em Rede (Servidor Node.js)
 
 Pré-requisito: Node.js **18 ou superior** (o servidor usa Express 4.x e
-Socket.io 4.x, que exigem essa versão mínima — ver `server/package.json`).
+Socket.io 4.x, que exigem essa versão mínima - ver `server/package.json`).
 
 Para o jogo em rede, você precisa iniciar o servidor:
 
@@ -31,9 +32,18 @@ Para o jogo em rede, você precisa iniciar o servidor:
 
 O servidor será iniciado na porta `55555`. Abra o navegador em `http://localhost:55555`. Ambos os jogadores devem inserir o mesmo nome de jogo para se conectarem.
 
+### Modo Webcam (reconhecimento de gestos)
+
+Acesse a página com o parâmetro `?mode=webcam` - por exemplo, `http://localhost:55555/?mode=webcam` (ou abrindo `game/index.html?mode=webcam` direto no navegador, se o navegador permitir câmera em `file://`). Sem o parâmetro, a página permanece no modo Rede e a coluna "Webcam" fica oculta.
+
+- O navegador pedirá permissão para usar a câmera; o vídeo processado aparece na coluna "Webcam", ao lado da arena.
+- O jogador 1 (Sub-Zero) é controlado por gestos - as instruções de calibração e movimentos aparecem na própria página. O jogador 2 (Kano) usa o teclado.
+- Importante: fique **fora** do enquadramento nos primeiros segundos - o algoritmo captura o fundo como referência. Quando o canvas da webcam ficar preto, pode entrar em cena.
+- O navegador só libera a webcam em **contexto seguro**: `localhost` ou HTTPS. No cluster Kubernetes, use `https://mkjs.local/?mode=webcam` - via `http://` o modo não funciona.
+
 ### Ambiente de Desenvolvimento via Docker (recomendado)
 
-Pré-requisito: apenas **Docker** instalado e em execução — Node.js não é necessário no host.
+Pré-requisito: apenas **Docker** instalado e em execução - Node.js não é necessário no host.
 
 **1. Configuração inicial (uma vez)**
 
@@ -90,7 +100,7 @@ docker build -t mkjs-dev .   # reconstrói a camada de npm ci
 
 Sobe a aplicação **e** um banco de dados PostgreSQL com um único comando. Persiste o histórico de partidas automaticamente.
 
-Pré-requisito: apenas **Docker** (com suporte a Compose v2) — nenhuma outra ferramenta no host.
+Pré-requisito: apenas **Docker** (com suporte a Compose v2) - nenhuma outra ferramenta no host.
 
 **1. Configuração inicial (uma vez)**
 
@@ -138,7 +148,7 @@ docker compose up --build    # reconstrói a imagem app com as novas dependênci
 
 ### Ambiente de Produção via Docker Compose (Nginx + Node.js + Postgres)
 
-Stack otimizada para produção: **Nginx** serve os arquivos estáticos do jogo e faz proxy do Socket.io e da API REST para o backend Node.js. A imagem do backend usa multi-stage build baseada em Alpine e roda como usuário não-root. Apenas a porta 80 do Nginx é exposta — o backend e o banco ficam na rede interna Docker.
+Stack otimizada para produção: **Nginx** serve os arquivos estáticos do jogo e faz proxy do Socket.io e da API REST para o backend Node.js. A imagem do backend usa multi-stage build baseada em Alpine e roda como usuário não-root. Apenas a porta 80 do Nginx é exposta - o backend e o banco ficam na rede interna Docker.
 
 Pré-requisito: apenas **Docker** (com suporte a Compose v2) instalado.
 
@@ -165,8 +175,8 @@ Abra `http://localhost` (ou `http://localhost:${PROD_PORT}` se alterou a porta) 
 **3. Jogar pela interface**
 
 O jogo abre automaticamente em modo de rede. Uma caixa de diálogo perguntará:
-- **"Are you going to be host?"** — responda `yes` no primeiro navegador e `no` no segundo
-- **"Enter game name:"** — insira o mesmo nome nos dois navegadores (ex.: `sala1`)
+- **"Are you going to be host?"** - responda `yes` no primeiro navegador e `no` no segundo
+- **"Enter game name:"** - insira o mesmo nome nos dois navegadores (ex.: `sala1`)
 
 Após ambos os jogadores entrarem, o jogo começa. Controles:
 - **Jogador 1 (esquerda):** `A`/`D` = mover, `W` = pular, `E` = soco alto, `Q` = soco baixo, `R` = chute alto, `C` = chute baixo
@@ -202,7 +212,7 @@ docker compose -f docker-compose.prod.yml down -v       # apaga volumes (reset c
 
 ### Kubernetes (K8s)
 
-Manifestos em `k8s/` (aplicados via Kustomize) sobem a mesma stack — Nginx, app Node.js e Postgres com persistência — em um cluster Kubernetes local. Útil para validar a aplicação fora do Docker Compose, em um ambiente mais próximo de produção.
+Manifestos em `k8s/` (aplicados via Kustomize) sobem a mesma stack - Nginx, app Node.js e Postgres com persistência - em um cluster Kubernetes local. Útil para validar a aplicação fora do Docker Compose, em um ambiente mais próximo de produção.
 
 Pré-requisitos: **Docker**, **kubectl**, **kind** (cluster Kubernetes local via containers Docker).
 
@@ -244,7 +254,7 @@ kubectl wait --namespace ingress-nginx --for=condition=ready pod \
 
 **3. Build das imagens e carga no cluster**
 
-`kind` não tem acesso a um registry — as imagens construídas localmente precisam ser carregadas explicitamente no cluster:
+`kind` não tem acesso a um registry - as imagens construídas localmente precisam ser carregadas explicitamente no cluster:
 
 ```bash
 docker build -f Dockerfile.prod -t mkjs-app:latest .
@@ -306,7 +316,7 @@ terraform init
 terraform apply
 ```
 
-O build e a carga das imagens (passo 3) continuam manuais — o Terraform não builda imagens Docker da aplicação:
+O build e a carga das imagens (passo 3) continuam manuais - o Terraform não builda imagens Docker da aplicação:
 
 ```bash
 docker build -f Dockerfile.prod -t mkjs-app:latest ..
@@ -328,11 +338,108 @@ kind delete cluster --name mkjs
 
 ---
 
-### CI — Qualidade de Código (SonarCloud)
+### HTTPS (cert-manager)
+
+Estende o cluster Kubernetes acima com TLS local: o `cert-manager` emite, via um `ClusterIssuer` autoassinado (`selfsigned-issuer`), um certificado para `mkjs.local`, e o Ingress passa a servir `https://mkjs.local` redirecionando automaticamente `http://mkjs.local` (porta 80) para HTTPS (porta 443).
+
+**1. Instalar o cert-manager**
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
+kubectl wait --namespace cert-manager \
+  --for=condition=available deployment --all --timeout=180s
+```
+
+Se o cluster foi provisionado via Terraform (`terraform apply`), este passo já é feito automaticamente - `terraform/main.tf` instala o `cert-manager` entre o `ingress-nginx` e a aplicação dos manifestos.
+
+**2. (Re)aplicar os manifestos**
+
+```bash
+kubectl apply -k k8s/
+```
+
+`k8s/cert-issuer.yaml` (ClusterIssuer `selfsigned-issuer`) e `k8s/certificate.yaml` (Certificate `mkjs-tls`) são aplicados junto com o restante da stack.
+
+**3. Verificar a emissão do certificado**
+
+```bash
+kubectl get clusterissuer
+# selfsigned-issuer   READY=True
+
+kubectl get certificate -n mkjs
+# mkjs-tls            READY=True   SECRET=mkjs-tls
+
+kubectl get secret mkjs-tls -n mkjs
+# TYPE=kubernetes.io/tls
+```
+
+**4. Acessar via HTTPS**
+
+Abra `https://mkjs.local/` no navegador. Como o certificado é autoassinado (sem CA pública), o navegador exibe um aviso de segurança - clique em **Avançado → Continuar para mkjs.local**. Isso é esperado neste ambiente local/educacional.
+
+**5. Verificar o redirecionamento HTTP → HTTPS**
+
+```bash
+curl -k -I http://mkjs.local/
+# HTTP/1.1 308 Permanent Redirect
+# Location: https://mkjs.local/
+
+curl -k -I https://mkjs.local/
+# HTTP/2 200
+```
+
+**6. Verificar superfície de rede mínima**
+
+```bash
+kubectl get svc -n mkjs
+# app, nginx, postgres -> todos ClusterIP (nenhum exposto fora do cluster)
+
+kubectl get svc -n ingress-nginx
+# apenas o controller ingress-nginx expõe portas (mapeadas para 80/443 do host via kind)
+```
+
+**(Opcional) Confiar no certificado para evitar o aviso do navegador**
+
+```bash
+kubectl get secret mkjs-tls -n mkjs -o jsonpath='{.data.tls\.crt}' | base64 -d > mkjs-local.crt
+
+# Linux
+sudo cp mkjs-local.crt /usr/local/share/ca-certificates/mkjs-local.crt
+sudo update-ca-certificates
+
+# Windows (PowerShell como Administrador)
+Import-Certificate -FilePath .\mkjs-local.crt -CertStoreLocation Cert:\LocalMachine\Root
+```
+
+---
+
+### CD - Publicação de Imagens (GitLab Container Registry)
+
+A cada push na branch `main` que passe pelos estágios `build`, `lint`, `test`, `security`, `quality` e `infra`, o estágio `release` do pipeline builda e publica as imagens de produção (Fase 8) no Container Registry do projeto:
+
+- `mkjs-app` (a partir de `Dockerfile.prod`)
+- `mkjs-nginx` (a partir de `nginx/Dockerfile`)
+
+Cada imagem recebe duas tags: `<sha-curto-do-commit>` e `latest`. O job `release:images` usa as variáveis `CI_REGISTRY*` predefinidas pelo GitLab - nenhuma credencial adicional precisa ser configurada.
+
+Para visualizar as imagens publicadas: no projeto GitLab, acesse **Deploy → Container Registry**.
+
+Para baixar uma imagem publicada:
+
+```bash
+docker login registry.gitlab.com
+docker pull registry.gitlab.com/<namespace>/<projeto>/mkjs-app:latest
+```
+
+> O deploy no cluster `kind` local continua via `kind load docker-image` (seção "Kubernetes (K8s)" acima) - a publicação no registry é o artefato versionado de "Deploy Contínuo" desta fase; não há um cluster remoto/VPS para o qual redeployar automaticamente.
+
+---
+
+### CI - Qualidade de Código (SonarCloud)
 
 O pipeline executa análise de qualidade no SonarCloud automaticamente em todo push, no estágio `quality` (após `test` e `security`). O job `sonarcloud` aguarda o resultado do Quality Gate e falha o pipeline se as métricas não atendem o padrão.
 
-**Pré-requisito (configuração única — via interface):**
+**Pré-requisito (configuração única - via interface):**
 
 1. Acesse [sonarcloud.io](https://sonarcloud.io) → **Log in with GitLab**
 2. Clique em **+** → **Analyze new project** → selecione o repositório
@@ -357,12 +464,12 @@ O relatório de cobertura é gerado em `server/coverage/lcov.info` (LCOV) e `ser
 
 ---
 
-### CI — Segurança: SAST & SCA (GitLab CI)
+### CI - Segurança: SAST & SCA (GitLab CI)
 
 O pipeline executa análise de segurança automaticamente em todo push, no estágio `security` (após `test`). Dois jobs são executados em paralelo:
 
-- **`semgrep-sast`** — Análise Estática de Segurança (SAST) via semgrep, detecta padrões de vulnerabilidade no código-fonte JavaScript.
-- **`sca:npm-audit`** — Verificação de Componentes (SCA) via `npm audit`, detecta vulnerabilidades conhecidas nas dependências.
+- **`semgrep-sast`** - Análise Estática de Segurança (SAST) via semgrep, detecta padrões de vulnerabilidade no código-fonte JavaScript.
+- **`sca:npm-audit`** - Verificação de Componentes (SCA) via `npm audit`, detecta vulnerabilidades conhecidas nas dependências.
 
 **Executar SCA localmente:**
 
@@ -385,14 +492,14 @@ found 0 vulnerabilities
 
 1. Acesse `CI/CD → Pipelines` no repositório
 2. Clique no pipeline mais recente → estágio `security`
-3. `sca:npm-audit` — log com resultado do `npm audit`
-4. `semgrep-sast` — artefato `gl-sast-report.json` disponível para download
+3. `sca:npm-audit` - log com resultado do `npm audit`
+4. `semgrep-sast` - artefato `gl-sast-report.json` disponível para download
 
 O job `sca:npm-audit` falha o pipeline se houver vulnerabilidade de severidade `high` ou `critical`. O job `semgrep-sast` é informativo (`allow_failure: true`) — achados SAST são reportados mas não bloqueiam o pipeline.
 
 ---
 
-### CI — Testes de Fuzzing (GitLab CI)
+### CI - Testes de Fuzzing (GitLab CI)
 
 O pipeline executa os testes de fuzzing automaticamente em todo push, no estágio `test` (em paralelo com `test:unit`). Os fuzz tests usam **fast-check** (property-based testing) para gerar centenas de entradas arbitrárias e verificar propriedades de `GameCollection` e `Game`.
 
@@ -418,7 +525,7 @@ Para visualizar o job `test:fuzz` no GitLab: `CI/CD → Pipelines → test:fuzz`
 
 ---
 
-### CI — Testes Unitários (GitLab CI)
+### CI - Testes Unitários (GitLab CI)
 
 O pipeline executa os testes unitários automaticamente em todo push, no estágio `test`, após build e lint. Para rodar localmente:
 
@@ -438,7 +545,7 @@ O processo termina com código `0` se todos os testes passarem. Para ver o job `
 
 ---
 
-### CI — Build & Lint (GitLab CI)
+### CI - Build & Lint (GitLab CI)
 
 O pipeline de CI executa automaticamente em todo push. Para verificar localmente antes de fazer push:
 

@@ -10,12 +10,14 @@
 <body>
     <table>
     <thead>
-        <th>
-            Arena
-        </th>
-        <th>
-            Webcam
-        </th>
+        <tr>
+            <th>
+                Arena
+            </th>
+            <th id="webcam-header">
+                Webcam
+            </th>
+        </tr>
     </thead>
     <tbody>
         <tr>
@@ -37,12 +39,12 @@
             <td id="webcam-parent">
             </td>
         </tr>
-        <tr>
+        <tr id="instructions-row">
             <td colspan="2">
                 <h1>Instructions</h1>
                 <p>
                     <ul class="instructions-list">
-                        <li>For playing with gesture recognition you need Google Chrome 22+ or Firefox 19+.</li>
+                        <li>For playing with gesture recognition you need a modern browser and the page must be served over HTTPS or localhost (otherwise the browser blocks webcam access).</li>
                         <li>Choose proper place to position your computer. I recommend you to use white wall as background and dark clothes for best contrast.</li>
                         <li>Stay outside the scope of the webcam. It needs to capture the background behind you at first place.</li>
                         <li>Allow to the web page to use your webcam.</li>
@@ -80,13 +82,22 @@
             };
 
             (function () {
-                
+
                 var startGame = function () {
                     $('loading').style.visibility = 'hidden';
                     $('arena').style.visibility = 'visible';
                     $('utils').style.visibility = 'visible';
                 };
-                
+
+                var mode = new URLSearchParams(window.location.search).get('mode'),
+                    useWebcam = mode === 'webcam';
+
+                if (!useWebcam) {
+                    $('webcam-header').style.display = 'none';
+                    $('webcam-parent').style.display = 'none';
+                    $('instructions-row').style.display = 'none';
+                }
+
                 var options = {
                     arena: {
                         container: document.getElementById('arena'),
@@ -102,11 +113,17 @@
                             }
                         }
 
-                    },
-                    isHost: /^yes$/i.test(prompt('Are you going to be host?')),
-                    gameName: prompt('Enter game name:'),
-                    gameType: 'network'
+                    }
                 };
+
+                if (useWebcam) {
+                    options.gameType = 'webcaminput';
+                    options.webcam = { container: $('webcam-parent') };
+                } else {
+                    options.isHost = /^yes$/i.test(prompt('Are you going to be host?'));
+                    options.gameName = prompt('Enter game name:');
+                    options.gameType = 'network';
+                }
 
                 function startNewGame() {
                     mk.start(options).ready(function () {

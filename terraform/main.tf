@@ -59,10 +59,23 @@ resource "null_resource" "ingress_nginx" {
   }
 }
 
-# Applies the application manifests (k8s/) once the cluster and ingress controller
-# are ready. Re-runs whenever a file under ../k8s changes.
-resource "null_resource" "app_manifests" {
+# Installs cert-manager (CRDs + controllers), used by k8s/cert-issuer.yaml and
+# k8s/certificate.yaml to issue the self-signed TLS certificate for mkjs.local.
+resource "null_resource" "cert_manager" {
   depends_on = [null_resource.ingress_nginx]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml --context "kind-${var.cluster_name}"
+      kubectl wait --namespace cert-manager --for=condition=available deployment --all --timeout=180s --context "kind-${var.cluster_name}"
+    EOT
+  }
+}
+
+# Applies the application manifests (k8s/) once the cluster, ingress controller
+# and cert-manager are ready. Re-runs whenever a file under ../k8s changes.
+resource "null_resource" "app_manifests" {
+  depends_on = [null_resource.ingress_nginx, null_resource.cert_manager]
 
   triggers = {
     manifests_hash = sha1(join("", [for f in fileset("${path.module}/../k8s", "**/*.yaml") : filesha1("${path.module}/../k8s/${f}")]))

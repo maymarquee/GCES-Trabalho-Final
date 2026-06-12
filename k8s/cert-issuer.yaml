@@ -1,0 +1,10 @@
+# Cluster-scoped issuer used to mint the local TLS certificate for mkjs.local.
+# selfSigned avoids needing a public domain or a pre-existing CA, matching the
+# "no VPS, local only" scope of Phase 10. Requires cert-manager's CRDs/controllers
+# to be installed first (see specs/010-cd-https-cert-manager/quickstart.md).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
