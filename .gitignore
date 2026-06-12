@@ -26,3 +26,7 @@ terraform/.terraform.lock.hcl
 *.tfstate.*
 *.tfvars
 crash.log
+
+# Tooling local (Spec Kit / Claude Code) — não faz parte do projeto
+.claude/skills/
+.specify/
